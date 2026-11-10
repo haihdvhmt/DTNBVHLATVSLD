@@ -38,7 +38,7 @@ services:
       retries: 20
 
   app:
-    image: nocobase/nocobase:beta
+    image: nocobase/nocobase:2.3.0-beta.9
     container_name: nocobase-qldtatld-app
     restart: unless-stopped
     init: true

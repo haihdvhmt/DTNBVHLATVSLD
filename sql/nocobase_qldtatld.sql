@@ -1,9 +1,8 @@
--- Exported: 2026-11-10 04:03:43 UTC
 --
 -- PostgreSQL database dump
 --
 
-\restrict ErgGaeWETo854CaQMkpp4X0fqg1OIFK1o37ZqOavF6cRp2JdXKeeceKXUcHRWjV
+\restrict te7KQLyrYl2ehuUqJJYasmcv0yVZEz7fzP3Sv0cUj5rZrVVPLkUAxntl2HBQMub
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Debian 16.15-1.pgdg13+2)
@@ -90872,5 +90871,5 @@ CREATE TRIGGER trg_delete_user_on_nguoi_lao_dong_delete AFTER DELETE OR UPDATE O
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ErgGaeWETo854CaQMkpp4X0fqg1OIFK1o37ZqOavF6cRp2JdXKeeceKXUcHRWjV
+\unrestrict te7KQLyrYl2ehuUqJJYasmcv0yVZEz7fzP3Sv0cUj5rZrVVPLkUAxntl2HBQMub
 
