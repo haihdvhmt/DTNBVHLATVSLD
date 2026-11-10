@@ -1,0 +1,34 @@
+{
+  "name": "@tkv/plugin-h5p",
+  "version": "0.1.0",
+  "description": "H5P interactive content integration for NocoBase",
+  "displayName": "H5P Interactive Content",
+  "displayName.zh-CN": "Nội dung tương tác H5P",
+  "keywords": ["nocobase", "h5p", "interactive", "elearning"],
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "scripts": {
+    "build:server": "tsup src/server/index.ts --format cjs --out-dir dist/server --dts --external @nocobase/* --external @lumieducation/h5p-server",
+    "build:client": "tsup src/client-v2/index.tsx --format esm --out-dir dist/client-v2 --dts --external @nocobase/* --external react --external react-dom --external antd --external @ant-design/icons --external react-router-dom --external i18next --external react-i18next --external @formily/* --external ahooks --external lodash --external dayjs --external axios --external @emotion/css",
+    "build": "npm run build:server && npm run build:client",
+    "postbuild": "node scripts/create-entries.js"
+  },
+  "devDependencies": {
+    "@nocobase/server": "2.3.0-beta.9",
+    "@nocobase/database": "2.3.0-beta.9",
+    "@nocobase/client-v2": "2.3.0-beta.9",
+    "@nocobase/flow-engine": "2.3.0-beta.9",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@lumieducation/h5p-server": "^10.0.4"
+  },
+  "peerDependencies": {
+    "@nocobase/server": ">=2.3.0",
+    "@nocobase/database": ">=2.3.0",
+    "@nocobase/client-v2": ">=2.3.0"
+  }
+}
