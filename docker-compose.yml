@@ -1,0 +1,72 @@
+name: nocobase-qldtatld
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: nocobase-qldtatld-postgres
+    restart: unless-stopped
+    command: postgres -c wal_level=logical
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - ./storage/db/postgres:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-25438}:5432"
+    networks:
+      - nocobase-qldtatld
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: nocobase-qldtatld-redis
+    restart: unless-stopped
+    volumes:
+      - ./storage/redis:/data
+    networks:
+      - nocobase-qldtatld
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: nocobase/nocobase:beta
+    container_name: nocobase-qldtatld-app
+    restart: unless-stopped
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_KEY: ${APP_KEY}
+      ENCRYPTION_FIELD_KEY: ${ENCRYPTION_FIELD_KEY}
+      DB_DIALECT: ${DB_DIALECT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ}
+      CACHE_DEFAULT_STORE: ${CACHE_DEFAULT_STORE}
+      CACHE_REDIS_URL: ${CACHE_REDIS_URL}
+      CACHE_MEMORY_MAX: ${CACHE_MEMORY_MAX}
+    volumes:
+      - ./storage/app:/app/nocobase/storage
+    ports:
+      - "${NOCOBASE_PORT:-13006}:80"
+    networks:
+      - nocobase-qldtatld
+
+networks:
+  nocobase-qldtatld:
+    driver: bridge
