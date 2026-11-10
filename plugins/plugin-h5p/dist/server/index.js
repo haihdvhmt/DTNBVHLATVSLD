@@ -60,13 +60,9 @@ var PluginH5PServer = class extends import_server.Plugin {
     });
     this.db.on("h5pContents.beforeCreate", async (model, options) => {
       const title = model.get("title");
-      if (!title || typeof title !== "string" || title.trim().length === 0) {
-        throw new Error("Title is required");
+      if (title && typeof title === "string") {
+        model.set("title", title.trim());
       }
-      if (title.length > 255) {
-        throw new Error("Title must be 255 characters or less");
-      }
-      model.set("title", title.trim());
       const ctx = options?.context;
       if (ctx?.state?.currentUser?.id) {
         model.set("createdById", ctx.state.currentUser.id);
@@ -74,15 +70,32 @@ var PluginH5PServer = class extends import_server.Plugin {
     });
     this.db.on("h5pContents.beforeUpdate", async (model) => {
       const title = model.get("title");
-      if (title !== void 0) {
-        if (!title || typeof title !== "string" || title.trim().length === 0) {
-          throw new Error("Title is required");
-        }
-        if (title.length > 255) {
-          throw new Error("Title must be 255 characters or less");
-        }
+      if (title !== void 0 && title && typeof title === "string") {
         model.set("title", title.trim());
       }
+    });
+    this.app.resourcer.use(async (ctx, next) => {
+      const { resourceName, actionName } = ctx.action;
+      if (resourceName === "h5pContents" && (actionName === "create" || actionName === "update")) {
+        const title = ctx.action.params.values?.title;
+        if (actionName === "create") {
+          if (!title || typeof title !== "string" || title.trim().length === 0) {
+            ctx.throw(400, "Title is required");
+          }
+          if (title.length > 255) {
+            ctx.throw(400, "Title must be 255 characters or less");
+          }
+        }
+        if (actionName === "update" && title !== void 0) {
+          if (!title || typeof title !== "string" || title.trim().length === 0) {
+            ctx.throw(400, "Title is required");
+          }
+          if (title.length > 255) {
+            ctx.throw(400, "Title must be 255 characters or less");
+          }
+        }
+      }
+      await next();
     });
     this.app.resourceManager.define({
       name: "h5p",
