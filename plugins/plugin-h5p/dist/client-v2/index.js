@@ -125,7 +125,7 @@ function H5PSettingsPage() {
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_antd.Card, { title: t("System Info"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_antd.Descriptions, { column: 1, bordered: true, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_antd.Descriptions.Item, { label: t("Plugin Version"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_antd.Tag, { color: "blue", children: info?.version || "0.1.0" }) }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_antd.Descriptions.Item, { label: t("Total Contents"), children: info?.totalContents ?? 0 }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_antd.Descriptions.Item, { label: t("Storage Path"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("code", { children: info?.storagePath || "N/A" }) })
+      info?.storagePath && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_antd.Descriptions.Item, { label: t("Storage Path"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("code", { children: info.storagePath }) })
     ] }) }),
     /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_antd.Card, { title: t("Setup Guide"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
       import_antd.Alert,
@@ -170,15 +170,25 @@ function H5PContentsPage() {
   }, []);
   const handleCreate = async () => {
     const values = await form.validateFields();
-    await fetch("/api/h5pContents:create", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(values)
-    });
-    import_antd2.message.success(t("Created successfully"));
-    setCreateModalOpen(false);
-    form.resetFields();
-    fetchContents();
+    try {
+      const res = await fetch("/api/h5pContents:create", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(values)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        const msg = err?.errors?.[0]?.message || `Error ${res.status}`;
+        import_antd2.message.error(msg);
+        return;
+      }
+      import_antd2.message.success(t("Created successfully"));
+      setCreateModalOpen(false);
+      form.resetFields();
+      fetchContents();
+    } catch {
+      import_antd2.message.error(t("Network error"));
+    }
   };
   const handleDelete = async (id) => {
     import_antd2.Modal.confirm({

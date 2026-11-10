@@ -35,15 +35,25 @@ export default function H5PContentsPage() {
 
   const handleCreate = async () => {
     const values = await form.validateFields();
-    await fetch('/api/h5pContents:create', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(values),
-    });
-    message.success(t('Created successfully'));
-    setCreateModalOpen(false);
-    form.resetFields();
-    fetchContents();
+    try {
+      const res = await fetch('/api/h5pContents:create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        const msg = err?.errors?.[0]?.message || `Error ${res.status}`;
+        message.error(msg);
+        return;
+      }
+      message.success(t('Created successfully'));
+      setCreateModalOpen(false);
+      form.resetFields();
+      fetchContents();
+    } catch {
+      message.error(t('Network error'));
+    }
   };
 
   const handleDelete = async (id: number) => {

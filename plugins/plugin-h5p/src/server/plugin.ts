@@ -17,7 +17,7 @@ export class PluginH5PServer extends Plugin {
       name: 'h5pContents',
       title: 'H5P Contents',
       fields: [
-        { type: 'string', name: 'title' },
+        { type: 'string', name: 'title', allowNull: false },
         { type: 'string', name: 'contentType' },
         { type: 'string', name: 'library' },
         { type: 'jsonb', name: 'parameters' },
@@ -26,6 +26,35 @@ export class PluginH5PServer extends Plugin {
         { type: 'bigInt', name: 'createdById' },
         { type: 'belongsTo', name: 'createdBy', target: 'users', foreignKey: 'createdById' },
       ],
+    });
+
+    this.db.on('h5pContents.beforeCreate', async (model: any, options: any) => {
+      const title = model.get('title');
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
+        throw new Error('Title is required');
+      }
+      if (title.length > 255) {
+        throw new Error('Title must be 255 characters or less');
+      }
+      model.set('title', title.trim());
+
+      const ctx = options?.context;
+      if (ctx?.state?.currentUser?.id) {
+        model.set('createdById', ctx.state.currentUser.id);
+      }
+    });
+
+    this.db.on('h5pContents.beforeUpdate', async (model: any) => {
+      const title = model.get('title');
+      if (title !== undefined) {
+        if (!title || typeof title !== 'string' || title.trim().length === 0) {
+          throw new Error('Title is required');
+        }
+        if (title.length > 255) {
+          throw new Error('Title must be 255 characters or less');
+        }
+        model.set('title', title.trim());
+      }
     });
 
     this.app.resourceManager.define({
@@ -40,14 +69,13 @@ export class PluginH5PServer extends Plugin {
       'h5pContents:render': this.handleRender.bind(this),
     });
 
-    this.app.acl.allow('h5pContents', '*', 'loggedIn');
-    this.app.acl.allow('h5p', ['info'], 'loggedIn');
-    this.app.acl.allow('h5p', ['listLibraries'], 'loggedIn');
+    this.app.acl.allow('h5pContents', ['list', 'get'], 'loggedIn');
+    this.app.acl.allow('h5pContents', ['create', 'update', 'destroy'], '$rootRole');
+    this.app.acl.allow('h5pContents', 'render', 'loggedIn');
+    this.app.acl.allow('h5p', ['info', 'listLibraries'], 'loggedIn');
   }
 
-  async install() {
-    // Seed data can be added here on first enable
-  }
+  async install() {}
 
   private async ensureStorageDirectories() {
     const dirs = ['content', 'libraries', 'temporary', 'exports'];
@@ -59,52 +87,66 @@ export class PluginH5PServer extends Plugin {
     }
   }
 
+  private isRootRole(ctx: any): boolean {
+    return ctx?.state?.currentUser?.dataValues?.roles?.some(
+      (r: any) => r.name === 'root' || r.name === 'admin',
+    ) || ctx?.state?.currentRole === 'root';
+  }
+
   private async handleInfo(ctx: any, next: any) {
     const contentsRepo = this.db.getRepository('h5pContents');
     const total = await contentsRepo.count();
 
-    ctx.body = {
+    const body: any = {
       version: '0.1.0',
-      storagePath: this.h5pStoragePath,
       totalContents: total,
-      storageDirectories: {
+    };
+
+    if (this.isRootRole(ctx)) {
+      body.storagePath = this.h5pStoragePath;
+      body.storageDirectories = {
         content: path.join(this.h5pStoragePath, 'content'),
         libraries: path.join(this.h5pStoragePath, 'libraries'),
         temporary: path.join(this.h5pStoragePath, 'temporary'),
-      },
-    };
+      };
+    }
+
+    ctx.body = body;
     await next();
   }
 
   private async handleListLibraries(ctx: any, next: any) {
     const librariesPath = path.join(this.h5pStoragePath, 'libraries');
-    let libraries: string[] = [];
+    const results: any[] = [];
 
     if (fs.existsSync(librariesPath)) {
-      libraries = fs.readdirSync(librariesPath).filter((name) => {
+      const dirs = fs.readdirSync(librariesPath).filter((name) => {
         const libPath = path.join(librariesPath, name);
         return (
           fs.statSync(libPath).isDirectory() &&
           fs.existsSync(path.join(libPath, 'library.json'))
         );
       });
+
+      for (const name of dirs) {
+        try {
+          const libJson = JSON.parse(
+            fs.readFileSync(path.join(librariesPath, name, 'library.json'), 'utf-8'),
+          );
+          results.push({
+            machineName: libJson.machineName,
+            majorVersion: libJson.majorVersion,
+            minorVersion: libJson.minorVersion,
+            title: libJson.title,
+            runnable: libJson.runnable === 1,
+          });
+        } catch {
+          // skip corrupted library.json
+        }
+      }
     }
 
-    ctx.body = libraries.map((name) => {
-      const libJson = JSON.parse(
-        fs.readFileSync(
-          path.join(librariesPath, name, 'library.json'),
-          'utf-8',
-        ),
-      );
-      return {
-        machineName: libJson.machineName,
-        majorVersion: libJson.majorVersion,
-        minorVersion: libJson.minorVersion,
-        title: libJson.title,
-        runnable: libJson.runnable === 1,
-      };
-    });
+    ctx.body = results;
     await next();
   }
 

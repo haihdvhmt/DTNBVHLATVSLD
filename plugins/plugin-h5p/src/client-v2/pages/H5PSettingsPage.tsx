@@ -42,9 +42,11 @@ export default function H5PSettingsPage() {
           <Descriptions.Item label={t('Total Contents')}>
             {info?.totalContents ?? 0}
           </Descriptions.Item>
-          <Descriptions.Item label={t('Storage Path')}>
-            <code>{info?.storagePath || 'N/A'}</code>
-          </Descriptions.Item>
+          {info?.storagePath && (
+            <Descriptions.Item label={t('Storage Path')}>
+              <code>{info.storagePath}</code>
+            </Descriptions.Item>
+          )}
         </Descriptions>
       </Card>
 
